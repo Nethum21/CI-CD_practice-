@@ -1,0 +1,47 @@
+pipeline {
+    agent any
+    environment {
+        DOCKER_IMAGE = 'my-docker-image:latest'  // Set your Docker image name here
+        DOCKER_CONTAINER_NAME = 'my-container'   // Set your container name here
+    }
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    // Build the Docker image from Dockerfile in the current workspace
+                    dockerImage = docker.build("${DOCKER_IMAGE}")
+                }
+            }
+        }
+        stage('Run Docker Container') {
+            steps {
+                script {
+                    // Run the Docker container
+                    sh "docker run -d --name ${DOCKER_CONTAINER_NAME} ${DOCKER_IMAGE}"
+                }
+            }
+        }
+        stage('Connect to Docker Container') {
+            steps {
+                script {
+                    // Execute a command within the running container (example shown)
+                    sh "docker exec ${DOCKER_CONTAINER_NAME} echo 'Connected to container!'"
+                }
+            }
+        }
+    }
+    post {
+        always {
+            // Cleanup to ensure containers are removed after use
+            script {
+                sh "docker stop ${DOCKER_CONTAINER_NAME} || true"
+                sh "docker rm ${DOCKER_CONTAINER_NAME} || true"
+            }
+        }
+    }
+}
